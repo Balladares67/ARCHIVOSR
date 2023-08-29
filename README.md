@@ -1,0 +1,2 @@
+# ARCHIVOSR
+Scrips de pràcticas
