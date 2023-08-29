@@ -1,0 +1,473 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+require(ggplot2)
+require(tidyverse)
+require(moments)
+require(readxl)
+```
+
+
+# Ejercicio 1
+
+```{r}
+datos1 <- read.csv("Debernardi.csv")
+head(datos1)
+tabla_diagnosis <- table(datos1$diagnosis)
+names(tabla_diagnosis) <- c("Control", "Benigno", "ACDP")
+frec_rel_diag <- tabla_diagnosis / sum(tabla_diagnosis)
+
+tabla_diagnosis
+frec_rel_diag
+
+barplot(frec_rel_diag, main = "Grafico de frecuencias", col = c(2,3,4))
+
+```
+
+# Ejercicio 2
+
+```{r}
+datos2 <- read.csv("datos_titanic.csv")
+cant_mujeres <- table(datos2$Survived,datos2$Sex)
+rownames(cant_mujeres) <- c("Fallecio", "Sobrevivio")
+cant_mujeres
+ser_mujer_sobrev <- cant_mujeres[2,1] / sum(cant_mujeres[2,])
+ser_mujer <- sum(cant_mujeres[,1]) / sum(cant_mujeres)
+cat("La probabilidad de ser mujer dado que sobrevivio es de: " ,ser_mujer_sobrev, "mientras que la probabilidad de ser mujer es de: ", ser_mujer, "\n")
+```
+
+
+
+```{r}
+sobrevivientes_clase <- table(datos2$Survived,datos2$Pclass)
+rownames(sobrevivientes_clase) <- c("Fallecio", "Sobrevivio")
+colnames(sobrevivientes_clase) <- c("Primera","Segunda","Tercera")
+sobre_1 <- sobrevivientes_clase["Sobrevivio","Primera"] / sum(sobrevivientes_clase["Sobrevivio",])
+sobre_2 <- sobrevivientes_clase["Sobrevivio","Segunda"] / sum(sobrevivientes_clase["Sobrevivio",])
+sobre_3 <- sobrevivientes_clase["Sobrevivio","Tercera"] / sum(sobrevivientes_clase["Sobrevivio",])
+datos2 <- datos2 %>% mutate(Survived  = factor(Survived, levels = c(0, 1), labels = c("No", "Sí"))) %>% 
+  mutate(Pclass = factor(Pclass, levels = c(1, 2,3), labels = c("Primera", "Segunda", "Tercera")))
+sobrevivientes_clase
+datos2 %>%
+  group_by(Pclass, Survived) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = Pclass, y = count, fill = factor(Survived))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Recuento de Supervivientes por Clase de Pasajero",
+       x = "Clase de Pasajero",
+       y = "Recuento") +
+  scale_fill_manual(values = c("0" = "lightblue", "1" = "steelblue")) +
+  theme_minimal()
+```
+
+# Ejercicio 3 
+
+```{r}
+iridio <- read.table("iridio.txt", header = TRUE)
+rodio <- read.table("rodio.txt", header = TRUE)
+
+Iridio <- iridio$iridio
+Rodio <- rodio$rodio
+
+hist( Iridio, main = "Histograma (Iridio)")
+boxplot(Iridio , main = "Boxplot (Iridio)")
+
+hist(Rodio, main = "Histograma (Rodio)")
+boxplot(Rodio, main = "Boxplot (Rodio)")
+
+par(mfrow = c(1,2))  # QUEDA FIJO ESTO 
+boxplot(Iridio , main = "Boxplot (Iridio)")
+boxplot(Rodio, main = "Boxplot (Rodio)")
+
+rango <- range(c(rodio,iridio))
+par(mfrow = c(1,2))
+boxplot(Iridio , main = "Boxplot (Iridio)", ylim = rango)
+boxplot(Rodio, main = "Boxplot (Rodio)", ylim = rango)
+
+
+media_iridio <- mean(Iridio)
+media_rodio <- mean(Rodio)
+
+mediana_iridio <- median(Iridio)
+mediana_rodio <- median(Rodio)
+
+# Media alpha podada,solo la mitad en nuestra notacion, 0.1 significa 10 por ciento en total segun nuestra notacion, para R es 0.1 por lado
+
+media_podadas_10_iridio <- mean(Iridio, trim = 0.05)
+media_podadas_10_rodio <- mean(Rodio, trim = 0.05)
+
+
+desvios <- c(Iridio = sd(Iridio), Rodio = sd(Rodio))
+IQRs <- c(Iridio = IQR(Iridio), Rodio = IQR(Rodio))
+MADs <- c(Iridio = mad(Iridio), Rodio = mad(Rodio))
+
+
+# Ojo con los corchetes, solo uno devuelve un vectorsito ,raaroo, dos devuelve el valor de la posicion del vector 
+desvios["Rodio"]
+desvios[["Rodio"]]
+
+qs <- c(0.9,0.75,0.5,0.25,0.1)
+
+quantile(Iridio,qs)
+quantile(Rodio,qs)
+
+# la funcion c() los concatena, por lo que pasamos a trabajar con listas
+
+cuantiles <- list(Iridio = quantile(Iridio,qs) , Rodio = quantile(Rodio,qs))
+cuantiles$Rodio
+
+# Como los dos vectores tienen los mismos indices (los cuantiles), se puede armar un dataframe, mejor para trabajar
+
+df_cuantiles <- data.frame(Iridio = quantile(Iridio,qs) , Rodio = quantile(Rodio,qs))
+```
+
+
+# Ejercicio 4 
+
+```{r}
+salchichasA <- read.table("salchichas_A.txt",header = T)
+salchichasB <- read.table("salchichas_B.txt",header = T)
+salchichasC <- read.table("salchichas_C.txt",header = T)
+
+
+salchichasA <- cbind(salchichasA, Tipo = rep("A",20))
+salchichasB <- cbind(salchichasB, Tipo = rep("B",17))
+salchichasC <- cbind(salchichasC, Tipo = rep("C",17))
+
+salchichasA <- salchichasA %>% rename(Calorias = CALORIAS.A) %>% rename(Sodio = SODIO.A)
+
+salchichasB <-  salchichasB %>% rename(Calorias = CALORIAS.B) %>% rename(Sodio = SODIO.B)
+
+salchichasC <- salchichasC %>% rename(Calorias = CALORIAS.C) %>% rename(Sodio = SODIO.C)
+
+
+
+salchichas <- rbind(salchichasA,salchichasB,salchichasC)
+
+write.table(salchichas, file = "salchichas.txt")
+
+hist(salchichasA$Calorias)
+hist(salchichasB$Calorias)
+hist(salchichasC$Calorias)
+```
+
+Las salchichas del grupo A poseen 3 grupos distintos, mientras que tanto las salchichas de los grupos B y C parecen pertenecer al mismo grupo. 
+
+Un posible dato atipico son los valores de menos de 120 calorias en el grupo A
+
+
+```{r}
+par(mfrow = c(1,3))
+boxplot(salchichasA$Calorias,main = "Salchichas A", ylim = c(80,200), outline = T)
+boxplot(salchichasB$Calorias,main = "Salchichas B", ylim = c(80,200), outline = T)
+boxplot(salchichasC$Calorias,main = "Salchichas C", ylim = c(80,200), outline = T)
+```
+
+Claramente se puede ver que las salchichas del tipo C tienen una menor cantidad de calorias en general, viendo su mediana, sus outliers, y demas datos.
+
+
+```{r}
+par(mfrow = c(1,3))
+boxplot(salchichasA$Sodio,main = "Salchichas A", ylim = c(250,650), outline = T)
+boxplot(salchichasB$Sodio,main = "Salchichas B", ylim = c(250,650), outline = T)
+boxplot(salchichasC$Sodio,main = "Salchichas C", ylim = c(250,650), outline = T)
+```
+
+Gran outlier en el grupo A, en general mayor sodio en salchichas de tipo C, y menor en tipo A
+
+# Ejercicio 5
+
+```{r}
+estudiantes <- read.table("estudiantes.txt", header = T)
+
+
+attach(estudiantes)
+hist(GRUPO1)
+
+par(mfrow=c(1,2))
+hist(GRUPO1, breaks = 10)
+hist(GRUPO2, breaks = 20)
+```
+
+
+```{r}
+table(GRUPO1)
+table(GRUPO2)
+6
+hist(GRUPO1, ylim=c(0,25),xlim = c(0.43,0.55))
+curve(dnorm(x,mean = mean(GRUPO1), sd = sd(GRUPO1)), add = T, col = "pink")
+```
+
+
+```{r}
+# Pasar freq a false garantiza que la suma de los bins suma 1, si freq es TRUE entonces son frecuencia relativas
+
+hist(GRUPO1, freq = F)
+curve(dnorm(x,mean = mean(GRUPO1), sd = sd(GRUPO1)), add = T, col = "pink")
+
+grupos <- list(GRUPO1,GRUPO2)
+```
+
+```{r}
+hist(GRUPO2, freq = F)
+curve(dnorm(x,mean = mean(GRUPO2), sd = sd(GRUPO2)), add = T, col = "pink")
+```
+
+```{r}
+qqnorm(GRUPO1)
+qqline(GRUPO1, col = "pink")
+```
+
+```{r}
+qqnorm(GRUPO2)
+qqline(GRUPO2, col = "blue")
+```
+
+```{r}
+summary(GRUPO1)
+summary(GRUPO2)
+sd(GRUPO1)
+sd(GRUPO2)
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(estudiantes$GRUPO1, main ="Grupo 1", ylim = c(0.45,0.80))
+boxplot(estudiantes$GRUPO2, main = "Grupo 2", ylim = c(0.45,0.80))
+```
+
+No considero que esten midiendo la misma caracteristica en ambos grupos.
+
+# Ejercicio 6
+
+```{r}
+nubes <- read.table("nubes.txt", header = T)
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(nubes$CONTROLES, main ="CONTROLES", ylim = c(0,1000))
+boxplot(nubes$TRATADAS, main = "TRATADAS", ylim = c(0,1000)) 
+# Esto quita algunos outliers
+```
+
+Efectivamente el bombardeo con atomos pareceria tener efecto sobre las nubes
+
+```{r}
+qqnorm(nubes$CONTROLES)
+qqline(nubes$CONTROLES, col = "pink")
+```
+```{r}
+densidad_cont <- density(nubes$CONTROLES)
+plot(densidad_cont)
+curve(dnorm(x,mean = mean(nubes$CONTROLES), sd = sd(nubes$CONTROLES)), add = T, col = "pink")
+```
+Claramente las nubes de control no siguen una distribucion normal
+
+```{r}
+qqnorm(nubes$TRATADAS)
+qqline(nubes$TRATADAS, col = "pink")
+```
+```{r}
+densidad_trat <- density(nubes$TRATADAS)
+plot(densidad_trat)
+curve(dnorm(x,mean = mean(nubes$TRATADAS), sd = sd(nubes$TRATADAS)), add = T, col = "pink")
+```
+Tampoco las nubes tratadas siguen una distribucion normal.
+
+```{r}
+nubes_log <- log(nubes)
+```
+
+```{r}
+qqnorm(nubes_log$CONTROLES)
+qqline(nubes_log$CONTROLES, col = "pink")
+```
+
+```{r}
+densidad_cont <- density(nubes_log$CONTROLES)
+plot(densidad_cont)
+curve(dnorm(x,mean = mean(nubes_log$CONTROLES), sd = sd(nubes_log$CONTROLES)), add = T, col = "pink")
+```
+
+
+```{r}
+qqnorm(nubes_log$TRATADAS)
+qqline(nubes_log$TRATADAS, col = "pink")
+```
+
+```{r}
+densidad_trat <- density(nubes_log$TRATADAS)
+plot(densidad_trat)
+curve(dnorm(x,mean = mean(nubes_log$TRATADAS), sd = sd(nubes_log$TRATADAS)), add = T, col = "pink")
+```
+En cambio cuando analizamos el logaritmo de la variable para ambos grupos, la distribucion se asemeja mas a una distribucion normal
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(nubes$CONTROLES, main ="CONTROLES")#, ylim = c(0,1000))
+boxplot(nubes$TRATADAS, main = "TRATADAS")#, ylim = c(0,1000))
+par(mfrow=c(1,2))
+boxplot(nubes_log$CONTROLES, main ="CONTROLES-log")#, ylim = c(0,1000))
+boxplot(nubes_log$TRATADAS, main = "TRATADAS-log")#, ylim = c(0,1000)) 
+# Esto quita algunos outliers
+```
+
+Podemos ver que los outliers pasaron a ser valores por debajo de la mediana, y de lo delimitado por el bigote inferior, en contra de lo que se podia notar que ocurria en el caso de los valores no logaritmizados
+
+# Ejercicio 7
+
+```{r}
+tarj_cred <- read.csv("data_credit_card.csv")
+attach(tarj_cred)
+```
+
+```{r}
+plot(ecdf(tenure))
+```
+
+```{r}
+plot(ecdf(purchases))
+```
+```{r}
+plot(ecdf(purchases_freq))
+```
+```{r}
+plot(ecdf(credit_limit))
+```
+
+```{r}
+hist(credit_limit, freq = F,col = "lightblue")
+lines(density(credit_limit), col ="pink")
+```
+
+No creo que tenga sentido hacer este tipo de graficos con la variable tenure pues se puede notar claramente que es una variable discreta, con un rango de valores muy acotado, por lo que tanto el histograma como la densidad no reflejarian informacion relevante a la hora del estudio de dicha variable.
+
+Para la variable purchases podria llegar a tener un poco mas de sentido, pues en su funcion empirica pareciera ser continua, pero como sus valores se agrupan en inmensa mayoria todos antes del 2500, y luego su rango se extiende hasta mas de 30000, tanto el histograma como la densidad mostrarian unicamente un pico cercano al cero, y luego una cola pesada a derecha
+
+```{r}
+barplot(prop.table(table(tenure)))
+```
+Se observa que la gran mayoria de compras se realizan en Diciembre.
+
+```{r}
+quantile(purchases_freq,c(0.25,0.75))
+IQR(purchases_freq)
+mad(purchases_freq)
+boxplot(purchases_freq)
+sd(purchases_freq)
+skewness(purchases_freq)
+kurtosis(purchases_freq)
+```
+
+
+```{r}
+quantile(tenure,c(0.25,0.75))
+IQR(tenure)
+mad(tenure)
+boxplot(tenure)
+sd(tenure)
+skewness(tenure)
+kurtosis(tenure)
+```
+
+
+```{r}
+quantile(purchases,c(0.25,0.75))
+IQR(purchases)
+mad(purchases)
+boxplot(purchases)
+sd(purchases)
+skewness(purchases)
+kurtosis(purchases)
+```
+
+
+```{r}
+quantile(credit_limit,c(0.25,0.75))
+IQR(credit_limit)
+mad(credit_limit)
+boxplot(credit_limit)
+sd(credit_limit)
+skewness(credit_limit)
+kurtosis(credit_limit)
+```
+
+
+# Ejercicio 8
+
+```{r}
+energia <- read_excel("ciclocombinado.xlsx")
+head(energia)
+```
+
+```{r}
+hist(energia$PE,freq = F)
+lines(density(energia$PE))
+```
+
+Se observa algo como una normal bivariada, con dos picos, uno alrededor de los 440 MW, y el otro, de menor tamaño, alrededor de los 465 MW
+
+```{r}
+energia_altas_temp <- energia$PE[energia$HighTemp == 1]
+energia_no_altas_temp <- energia$PE[energia$HighTemp == 0]
+
+plot(density(energia_altas_temp),col = "red",xlim = c(410,500))
+lines(density(energia_no_altas_temp),col = "lightblue")
+```
+
+Se puede apreciar claramente que en los dias donde la temperatura fue mayor a 20°C no se entrego tanta energia en gral. como si se entrego en aquellos dias donde las temperaturas fueron menores a 20°C. Aqui se puede notar que el pico visto anteriormente en 440 MW corresponde a los dias de altas temperaturas, mientras que el de 465 MW se dio en los dias de menor temperatura.
+
+```{r}
+sum(energia_no_altas_temp < 450)/length(energia_no_altas_temp)
+sum(energia_altas_temp < 300)/length(energia_altas_temp)
+sum(energia$PE < 450)/length(energia$PE)
+```
+```{r}
+quantile(energia_altas_temp,0.9)
+quantile(energia$PE,0.9)
+```
+
+# Ejercicio 9 
+
+```{r}
+diag1 <- datos1$LYVE1[datos1$diagnosis == 1]
+diag2 <- datos1$LYVE1[datos1$diagnosis == 2]
+diag3 <- datos1$LYVE1[datos1$diagnosis == 3]
+
+par(mfrow = c(1,3))
+hist(diag1,xlim = c(0,22), ylim = c(0,120))
+hist(diag2,xlim = c(0,22), ylim = c(0,120))
+hist(diag3,xlim = c(0,22), ylim = c(0,120))
+```
+
+Vemos un pico de enorme altura en el histograma del diagnostico 1, mientras que en el histograma del diagnostico 3, se observa una distribucion mas variada de los datos, en cuanto al histograma del diagnostico 2 podemos decir que si bien tiene un pico en los menores valores de la variable LYVE1, este no posee tanta altura como el del diagnostico 1, y se encuentran mas distribuidas las observaciones.
+
+```{r}
+plot(ecdf(diag1), col = "pink", main = "Funciones empiricas segun el diagnostico",xlim=c(0,15))
+lines(ecdf(diag2), col = "lightblue")
+lines(ecdf(diag3), col = "cornsilk2")
+legend("bottomright",inset = 0.05,legend = c("Diagnostico 1","Diagnostico 2", "Diagnostico 3"), col = c("pink","lightblue","cornsilk2"), lty = c(1, 1, 1))
+```
+
+La afirmacion es verdadera, vemos que la curva con las observaciones de diagnostico 2, es decir, aquellas personas con enfermedades asociadas al pancreas, siempre se encuentra por encima de la curva de aquellas observaciones tomadas de las personas que padecen cancer de pancreas, es decir las personas con diagnostico 3. Lo que nos indica que aquellas personas con diagnostico 3 poseen una menor probabilidad de tener los valores de la variable LYVE1 mas altos.
+
+
+```{r}
+boxplot(datos1$LYVE1[datos1$diagnosis == 1] ~ datos1$sex[datos1$diagnosis == 1])
+boxplot(datos1$LYVE1[datos1$diagnosis == 2] ~ datos1$sex[datos1$diagnosis == 2])
+boxplot(datos1$LYVE1[datos1$diagnosis == 3] ~ datos1$sex[datos1$diagnosis == 3])
+```
+
+El sexo de la persona si parece afectar a los niveles de la proteina, en los tres tipos de diagnostico se puede apreciar que los hombres poseen un mayor nivel de proteina que las mujeres, aunque esto tiende a igualarse en aquellos sujetos que estan diagnosticados con adenocarcinoma pancreatico ductal.
+
+```{r}
+plot(density(diag1), col = "pink", main = "Funciones empiricas segun el diagnostico",xlim=c(0,15))
+lines(density(diag2), col = "lightblue")
+lines(density(diag3), col = "cornsilk2")
+legend("topright",inset = 0.05,legend = c("Diagnostico 1","Diagnostico 2", "Diagnostico 3"), col = c("pink","lightblue","cornsilk2"), lty = c(1, 1, 1))
+```
+
